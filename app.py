@@ -3,7 +3,7 @@ import google.generativeai as genai
 
 # --- 1. SETUP ---
 # Paste your API Key here
-API_KEY = "AIzaSyDwOoRMMdh85cxoR6DjGfkTxQQ_yIh4wic"
+API_KEY = "....."
 genai.configure(api_key=API_KEY)
 
 st.set_page_config(page_title="Gemini Chatbot", layout="centered")
