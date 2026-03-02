@@ -1,10 +1,15 @@
 import streamlit as st
 import google.generativeai as genai
+import os
 
-# --- 1. SETUP ---
-# Paste your API Key here
-API_KEY = "....."
-genai.configure(api_key=API_KEY)
+# This looks for the key in Streamlit Cloud's 'Secrets' dashboard
+if "GEMINI_API_KEY" in st.secrets:
+    api_key = st.secrets["GEMINI_API_KEY"]
+else:
+    # Fallback for your local PC (make sure to replace this for local testing)
+    api_key = "YOUR_LOCAL_API_KEY"
+
+genai.configure(api_key=api_key)
 
 st.set_page_config(page_title="Gemini Chatbot", layout="centered")
 st.title("Jagriti's Gemini Chatbot")
