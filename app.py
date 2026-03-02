@@ -11,7 +11,7 @@ except KeyError:
     st.stop()
 
 # Page configuration
-st.set_page_config(page_title="Jagriti's Chatbot", layout="centered", page_icon="🤖")
+st.set_page_config(page_title="Jagriti's Chatbot", layout="centered", page_icon="J")
 st.title("Jagriti's Chatbot")
 
 # --- 2. DYNAMIC MODEL FINDER ---
