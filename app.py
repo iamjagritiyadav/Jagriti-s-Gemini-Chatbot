@@ -2,7 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 
 # Streamlit secrets se API key uthana
-api_key = st.secrets["GOOGLE_API_KEY"]
+api_key = st.secrets["GEMINI_API_KEY"]
 
 # Gemini model configure karna
 genai.configure(api_key=api_key)
