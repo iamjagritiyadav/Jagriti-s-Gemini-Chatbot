@@ -1,75 +1,88 @@
 import streamlit as st
 import google.generativeai as genai
-import os
 
-# This looks for the key in Streamlit Cloud's 'Secrets' dashboard
-if "GEMINI_API_KEY" in st.secrets:
-    api_key = st.secrets["GEMINI_API_KEY"]
-else:
-    # Fallback for your local PC (make sure to replace this for local testing)
-    api_key = "YOUR_LOCAL_API_KEY"
+# --- PAGE CONFIG ---
+st.set_page_config(page_title="JAGRITI'S CHATBOT", page_icon="✨", layout="centered")
 
-genai.configure(api_key=api_key)
+# --- CUSTOM CSS (The "Gemini" Look) ---
+st.markdown("""
+    <style>
+    /* Main Background */
+    .stApp {
+        background-color: #131314;
+        color: #e3e3e3;
+    }
+    /* Style Chat Input */
+    .stChatInput {
+        bottom: 20px;
+    }
+    /* Rounded corners for chat bubbles */
+    [data-testid="stChatMessage"] {
+        background-color: #1e1f20;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background-color: #1e1f20;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="Gemini Chatbot", layout="centered")
-st.title("Jagriti's Gemini Chatbot")
+# --- API SETUP ---
+# Fetching from Streamlit Secrets (as you mentioned you already have this)
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except Exception as e:
+    st.error("API Key not found in Streamlit Secrets!")
 
-# --- 2. DYNAMIC MODEL FINDER (The 404 Fix) ---
-@st.cache_resource
-def get_best_model():
-    try:
-        # This lists every model your API key is allowed to use
-        available_models = [
-            m.name for m in genai.list_models() 
-            if 'generateContent' in m.supported_generation_methods
-        ]
-        
-        # We try to find 'flash' first because it's fast/free
-        for name in available_models:
-            if "flash" in name.lower():
-                return name
-        
-        # If no flash, return the first available one
-        return available_models[0]
-    except Exception as e:
-        st.error(f"Failed to fetch models: {e}")
-        return "models/gemini-1.5-flash" # Hardcoded fallback
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-working_model_name = get_best_model()
-st.caption(f"Connected to: `{working_model_name}`")
-
-# --- 3. CHAT HISTORY ---
+# --- CHAT HISTORY INITIALIZATION ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "chat_session" not in st.session_state:
+    # This starts the Gemini-native history tracking
+    st.session_state.chat_session = model.start_chat(history=[])
 
-# Display previous messages
+# --- SIDEBAR (History/Settings) ---
+with st.sidebar:
+    st.title("✨ Gemini Chat")
+    if st.button("Clear Chat"):
+        st.session_state.messages = []
+        st.session_state.chat_session = model.start_chat(history=[])
+        st.rerun()
+    st.info("Ask anything! This bot remembers the conversation.")
+
+# --- DISPLAY CHAT HISTORY ---
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    with st.chat_message(message["role"], avatar="👤" if message["role"] == "user" else "✨"):
         st.markdown(message["content"])
 
-# --- 4. CHAT LOGIC ---
-if prompt := st.chat_input("Ask me anything..."):
-    # Show user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+# --- CHAT INPUT ---
+if prompt := st.chat_input("Ask Gemini..."):
+    # 1. Display user message
+    with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
+    
+    # 2. Save to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Generate Response
-    with st.chat_message("assistant"):
+    # 3. Generate response
+    with st.chat_message("assistant", avatar="✨"):
+        message_placeholder = st.empty()
+        full_response = ""
+        
         try:
-            model = genai.GenerativeModel(working_model_name)
-            # stream=True makes it feel interactive
-            response = model.generate_content(prompt, stream=True)
-            
-            full_res = ""
-            placeholder = st.empty()
-            
+            # Using stream=True makes it feel much more like Gemini
+            response = st.session_state.chat_session.send_message(prompt, stream=True)
             for chunk in response:
-                full_res += chunk.text
-                placeholder.markdown(full_res + "▌")
-            
-            placeholder.markdown(full_res)
-            st.session_state.messages.append({"role": "assistant", "content": full_res})
-            
+                full_response += chunk.text
+                message_placeholder.markdown(full_response + "▌")
+            message_placeholder.markdown(full_response)
         except Exception as e:
-            st.error(f"API Error: {e}")
+            st.error(f"Error: {str(e)}")
+    
+    # 4. Save assistant response to history
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
