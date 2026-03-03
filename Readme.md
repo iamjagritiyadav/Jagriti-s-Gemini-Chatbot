@@ -6,6 +6,8 @@
 
 ---
 
+## Live link : https://jagriti-chatbot.streamlit.app/
+
 ## Overview
 
 This project is a lightweight AI chatbot built using Streamlit and Google Gemini.
